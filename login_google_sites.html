@@ -1,0 +1,320 @@
+<iframe src="URL_DO_SEU_ARQUIVO_HTML" width="100%" height="500px" frameborder="0"></iframe><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .google-btn {
+            background-color: white;
+            color: #757575;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .google-btn img {
+            margin-right: 10px;
+            width: 18px;
+        }
+        .google-btn:hover {
+            background-color: #f5f5f5;
+        }
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+        }
+        .error {
+            color: #d32f2f;
+        }
+        .success {
+            color: #388e3c;
+        }
+        .user-info {
+            display: none;
+            text-align: center;
+        }
+        .toggle-form {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .toggle-form a {
+            color: #4285F4;
+            text-decoration: none;
+        }
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Formulário de Login -->
+        <div id="loginForm">
+            <h2>Login</h2>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Seu email">
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" placeholder="Sua senha">
+            </div>
+            <div class="auth-buttons">
+                <button id="loginButton">Entrar</button>
+                <button class="google-btn" id="googleLogin">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo">
+                    Entrar com Google
+                </button>
+            </div>
+            <div class="toggle-form">
+                <a href="#" id="showRegister">Não tem uma conta? Registre-se</a>
+            </div>
+            <p id="loginMessage" class="message"></p>
+        </div>
+
+        <!-- Formulário de Registro -->
+        <div id="registerForm" style="display: none;">
+            <h2>Registro</h2>
+            <div class="form-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail" placeholder="Seu email">
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Senha</label>
+                <input type="password" id="regPassword" placeholder="Sua senha">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Senha</label>
+                <input type="password" id="confirmPassword" placeholder="Confirme sua senha">
+            </div>
+            <button id="registerButton">Registrar</button>
+            <div class="toggle-form">
+                <a href="#" id="showLogin">Já tem uma conta? Faça login</a>
+            </div>
+            <p id="registerMessage" class="message"></p>
+        </div>
+
+        <!-- Informações do Usuário Logado -->
+        <div id="userInfo" class="user-info">
+            <h2>Bem-vindo!</h2>
+            <p>Você está logado como <span id="userEmail"></span></p>
+            <button id="logoutButton">Sair</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Configuração do Firebase - Substitua com suas próprias credenciais
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Elementos DOM
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const userInfo = document.getElementById('userInfo');
+        const userEmail = document.getElementById('userEmail');
+        const loginMessage = document.getElementById('loginMessage');
+        const registerMessage = document.getElementById('registerMessage');
+
+        // Alternar entre formulários
+        document.getElementById('showRegister').addEventListener('click', function(e) {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        document.getElementById('showLogin').addEventListener('click', function(e) {
+            e.preventDefault();
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        // Login com email/senha
+        document.getElementById('loginButton').addEventListener('click', function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                loginMessage.textContent = 'Por favor, preencha todos os campos.';
+                loginMessage.className = 'message error';
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    loginMessage.textContent = 'Login realizado com sucesso!';
+                    loginMessage.className = 'message success';
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                })
+                .catch((error) => {
+                    let errorMessage = 'Erro ao fazer login. Verifique suas credenciais.';
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        errorMessage = 'Email ou senha incorretos.';
+                    }
+                    loginMessage.textContent = errorMessage;
+                    loginMessage.className = 'message error';
+                });
+        });
+
+        // Login com Google
+        document.getElementById('googleLogin').addEventListener('click', function() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    loginMessage.textContent = 'Login com Google realizado com sucesso!';
+                    loginMessage.className = 'message success';
+                })
+                .catch((error) => {
+                    loginMessage.textContent = 'Erro ao fazer login com Google: ' + error.message;
+                    loginMessage.className = 'message error';
+                });
+        });
+
+        // Registro de usuário
+        document.getElementById('registerButton').addEventListener('click', function() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!email || !password || !confirmPassword) {
+                registerMessage.textContent = 'Por favor, preencha todos os campos.';
+                registerMessage.className = 'message error';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                registerMessage.textContent = 'As senhas não coincidem.';
+                registerMessage.className = 'message error';
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    registerMessage.textContent = 'Registro realizado com sucesso!';
+                    registerMessage.className = 'message success';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    
+                    // Mostrar formulário de login após registro bem-sucedido
+                    setTimeout(() => {
+                        registerForm.style.display = 'none';
+                        loginForm.style.display = 'block';
+                    }, 2000);
+                })
+                .catch((error) => {
+                    let errorMessage = 'Erro ao registrar: ' + error.message;
+                    if (error.code === 'auth/email-already-in-use') {
+                        errorMessage = 'Este email já está em uso.';
+                    } else if (error.code === 'auth/weak-password') {
+                        errorMessage = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+                    }
+                    registerMessage.textContent = errorMessage;
+                    registerMessage.className = 'message error';
+                });
+        });
+
+        // Logout
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            auth.signOut()
+                .then(() => {
+                    loginMessage.textContent = 'Logout realizado com sucesso!';
+                    loginMessage.className = 'message success';
+                })
+                .catch((error) => {
+                    loginMessage.textContent = 'Erro ao fazer logout: ' + error.message;
+                    loginMessage.className = 'message error';
+                });
+        });
+
+        // Verificar estado de autenticação
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Usuário está logado
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'none';
+                userInfo.style.display = 'block';
+                userEmail.textContent = user.email;
+            } else {
+                // Usuário não está logado
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                userInfo.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
